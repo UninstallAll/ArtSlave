@@ -9,10 +9,21 @@ export function useAuth() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // 如果 Supabase 未配置，直接设置为未登录状态
+    if (!supabase) {
+      setLoading(false)
+      return
+    }
+
     // 获取当前用户
     const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        setUser(user)
+      } catch (error) {
+        console.warn('Supabase auth error:', error)
+        setUser(null)
+      }
       setLoading(false)
     }
 
@@ -30,29 +41,61 @@ export function useAuth() {
   }, [])
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    })
-    return { data, error }
+    if (!supabase) {
+      return { data: null, error: { message: 'Supabase 未配置' } }
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      return { data, error }
+    } catch (error) {
+      return { data: null, error: { message: '登录失败' } }
+    }
   }
 
   const signUp = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    })
-    return { data, error }
+    if (!supabase) {
+      return { data: null, error: { message: 'Supabase 未配置' } }
+    }
+
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      })
+      return { data, error }
+    } catch (error) {
+      return { data: null, error: { message: '注册失败' } }
+    }
   }
 
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut()
-    return { error }
+    if (!supabase) {
+      return { error: { message: 'Supabase 未配置' } }
+    }
+
+    try {
+      const { error } = await supabase.auth.signOut()
+      return { error }
+    } catch (error) {
+      return { error: { message: '退出登录失败' } }
+    }
   }
 
   const resetPassword = async (email: string) => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email)
-    return { data, error }
+    if (!supabase) {
+      return { data: null, error: { message: 'Supabase 未配置' } }
+    }
+
+    try {
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email)
+      return { data, error }
+    } catch (error) {
+      return { data: null, error: { message: '重置密码失败' } }
+    }
   }
 
   return {

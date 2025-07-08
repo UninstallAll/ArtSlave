@@ -53,55 +53,63 @@ export function RegisterForm() {
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle>注册</CardTitle>
-        <CardDescription>
+    <Card className="w-full max-w-md mx-auto border-0 shadow-2xl bg-white/80 backdrop-blur-sm">
+      <CardHeader className="text-center pb-6">
+        <CardTitle className="text-2xl font-bold text-slate-800">注册</CardTitle>
+        <CardDescription className="text-slate-600">
           创建您的 ArtSlave 账户
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Form onSubmit={handleSubmit}>
           <FormField>
-            <FormLabel htmlFor="email">邮箱</FormLabel>
+            <FormLabel htmlFor="email" className="text-slate-700 font-medium">邮箱</FormLabel>
             <Input
               id="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+              placeholder="请输入您的邮箱"
             />
           </FormField>
-          
+
           <FormField>
-            <FormLabel htmlFor="password">密码</FormLabel>
+            <FormLabel htmlFor="password" className="text-slate-700 font-medium">密码</FormLabel>
             <Input
               id="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+              placeholder="请输入密码（至少6位）"
             />
           </FormField>
 
           <FormField>
-            <FormLabel htmlFor="confirmPassword">确认密码</FormLabel>
+            <FormLabel htmlFor="confirmPassword" className="text-slate-700 font-medium">确认密码</FormLabel>
             <Input
               id="confirmPassword"
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              className="border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+              placeholder="请再次输入密码"
             />
           </FormField>
 
           {error && (
-            <FormMessage>{error}</FormMessage>
+            <FormMessage className="bg-red-50 text-red-700 p-3 rounded-lg border border-red-200">
+              {error}
+            </FormMessage>
           )}
 
-          <Button 
-            type="submit" 
-            className="w-full"
+          <Button
+            type="submit"
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-lg h-12 text-base font-medium"
             disabled={loading}
           >
             {loading ? '注册中...' : '注册'}
