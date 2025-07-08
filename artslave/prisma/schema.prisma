@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// 用户类型枚举
+enum UserType {
+  ARTIST
+  RESEARCHER
+  INSTITUTION
+  CURATOR
+}
+
+// 经验水平枚举
+enum ExperienceLevel {
+  EMERGING
+  MID_CAREER
+  ESTABLISHED
+}
+
+// 投稿信息类型枚举
+enum SubmissionType {
+  EXHIBITION
+  RESIDENCY
+  COMPETITION
+  GRANT
+  CONFERENCE
+  PUBLICATION
+  OTHER
+}
+
+// 投稿状态枚举
+enum SubmissionStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+}
+
+// 用户表
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  phone     String?
+  avatar    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 用户类型和基本信息
+  userType        UserType?
+  experienceLevel ExperienceLevel?
+  location        String?
+  languages       String[] // JSON array of languages
+  website         String?
+  socialMedia     Json? // JSON object for social media links
+
+  // 艺术相关信息
+  artistStatement String?
+  artFields       String[] // 艺术领域/专业方向
+  education       Json? // 教育背景 JSON
+  exhibitions     Json? // 展览历史 JSON
+  awards          Json? // 获奖经历 JSON
+
+  // 关联关系
+  portfolios    Portfolio[]
+  submissions   UserSubmission[]
+  aiMatches     AIMatch[]
+
+  @@map("users")
+}
+
+// 作品集表
+model Portfolio {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  medium      String? // 媒介类型
+  dimensions  String? // 尺寸
+  year        Int?
+  imageUrl    String?
+  fileUrl     String? // 作品文件URL
+  tags        String[] // 标签
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联关系
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("portfolios")
+}
+
+// 投稿信息表
+model SubmissionInfo {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  type        SubmissionType
+  organizer   String // 主办方
+  deadline    DateTime
+  location    String?
+  website     String?
+  email       String?
+  phone       String?
+  fee         Decimal? // 费用
+  prize       String? // 奖金/福利
+  requirements Json? // 投稿要求 JSON
+  tags        String[] // 标签
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // 关联关系
+  userSubmissions UserSubmission[]
+  aiMatches       AIMatch[]
+
+  @@map("submission_infos")
+}
+
+// 用户投稿记录表
+model UserSubmission {
+  id               String           @id @default(cuid())
+  userId           String
+  submissionInfoId String
+  status           SubmissionStatus @default(DRAFT)
+  submittedAt      DateTime?
+  notes            String? // 用户备注
+  materials        Json? // 投稿材料 JSON
+  response         String? // 回复结果
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+
+  // 关联关系
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissionInfo SubmissionInfo @relation(fields: [submissionInfoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, submissionInfoId])
+  @@map("user_submissions")
+}
+
+// AI 匹配记录表
+model AIMatch {
+  id               String  @id @default(cuid())
+  userId           String
+  submissionInfoId String
+  matchScore       Float // 匹配分数 0-1
+  reasons          Json? // 匹配原因 JSON
+  isRecommended    Boolean @default(false)
+  isViewed         Boolean @default(false)
+  isApplied        Boolean @default(false)
+  createdAt        DateTime @default(now())
+
+  // 关联关系
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  submissionInfo SubmissionInfo @relation(fields: [submissionInfoId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, submissionInfoId])
+  @@map("ai_matches")
+}
+
+// 数据源管理表
+model DataSource {
+  id          String   @id @default(cuid())
+  name        String
+  url         String
+  type        String // 数据源类型：website, api, rss等
+  isActive    Boolean  @default(true)
+  lastCrawled DateTime?
+  config      Json? // 爬虫配置 JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("data_sources")
+}
+
+// 爬虫任务记录表
+model CrawlJob {
+  id           String    @id @default(cuid())
+  dataSourceId String?
+  status       String // pending, running, completed, failed
+  startedAt    DateTime?
+  completedAt  DateTime?
+  itemsFound   Int       @default(0)
+  itemsAdded   Int       @default(0)
+  errorMessage String?
+  logs         Json? // 日志 JSON
+  createdAt    DateTime  @default(now())
+
+  @@map("crawl_jobs")
+}
