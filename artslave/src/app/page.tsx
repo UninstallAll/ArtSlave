@@ -42,7 +42,7 @@ export default function Home() {
                   <Sparkles className="w-6 h-6 text-white" />
                 </div>
                 <h1 className="text-2xl font-bold text-gray-900">
-                  ArtSlave
+                Ferrari Factory
                 </h1>
               </div>
               <div className="bg-amber-100 text-amber-800 px-4 py-2 rounded-2xl text-sm font-medium">
@@ -82,6 +82,26 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* 1. 数据收集爬虫 */}
+            <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
+              <div className="mb-4">
+                <div className="w-14 h-14 bg-cyan-600 rounded-2xl flex items-center justify-center mb-4">
+                  <Database className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">数据收集</h3>
+                <p className="text-gray-600 text-sm">
+                  管理爬虫和数据源
+                </p>
+              </div>
+              <Button
+                className="w-full bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl py-3"
+                onClick={() => window.location.href = '/data-collection'}
+              >
+                数据管理
+              </Button>
+            </div>
+
+            {/* 2. 投稿信息展示 */}
             <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
               <div className="mb-4">
                 <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-4">
@@ -92,26 +112,15 @@ export default function Home() {
                   浏览和搜索最新的投稿机会
                 </p>
               </div>
-              <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-3" disabled>
-                查看投稿信息 (开发中)
+              <Button
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-2xl py-3"
+                onClick={() => window.location.href = '/submissions'}
+              >
+                查看投稿信息
               </Button>
             </div>
 
-            <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
-              <div className="mb-4">
-                <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center mb-4">
-                  <Palette className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">我的作品集</h3>
-                <p className="text-gray-600 text-sm">
-                  管理您的艺术作品和资料
-                </p>
-              </div>
-              <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-2xl py-3" disabled>
-                管理作品集 (开发中)
-              </Button>
-            </div>
-
+            {/* 3. AI匹配 */}
             <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
               <div className="mb-4">
                 <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center mb-4">
@@ -127,6 +136,23 @@ export default function Home() {
               </Button>
             </div>
 
+            {/* 4. 我的作品集 (投稿准备) */}
+            <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
+              <div className="mb-4">
+                <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center mb-4">
+                  <Palette className="w-7 h-7 text-white" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">我的作品集</h3>
+                <p className="text-gray-600 text-sm">
+                  管理您的艺术作品和资料
+                </p>
+              </div>
+              <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-2xl py-3" disabled>
+                管理作品集 (开发中)
+              </Button>
+            </div>
+
+            {/* 5. 投稿记录 */}
             <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
               <div className="mb-4">
                 <div className="w-14 h-14 bg-orange-600 rounded-2xl flex items-center justify-center mb-4">
@@ -142,21 +168,7 @@ export default function Home() {
               </Button>
             </div>
 
-            <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
-              <div className="mb-4">
-                <div className="w-14 h-14 bg-cyan-600 rounded-2xl flex items-center justify-center mb-4">
-                  <Database className="w-7 h-7 text-white" />
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">数据收集</h3>
-                <p className="text-gray-600 text-sm">
-                  管理爬虫和数据源
-                </p>
-              </div>
-              <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl py-3" disabled>
-                数据管理 (开发中)
-              </Button>
-            </div>
-
+            {/* 6. 系统设置 */}
             <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
               <div className="mb-4">
                 <div className="w-14 h-14 bg-gray-700 rounded-2xl flex items-center justify-center mb-4">
@@ -240,6 +252,26 @@ export default function Home() {
 
       <main className="max-w-7xl mx-auto px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* 1. 数据收集爬虫 */}
+          <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
+            <div className="mb-4">
+              <div className="w-14 h-14 bg-cyan-600 rounded-2xl flex items-center justify-center mb-4">
+                <Database className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">数据收集</h3>
+              <p className="text-gray-600 text-sm">
+                管理爬虫和数据源
+              </p>
+            </div>
+            <Button
+              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl py-3"
+              onClick={() => window.location.href = '/data-collection'}
+            >
+              数据管理
+            </Button>
+          </div>
+
+          {/* 2. 投稿信息展示 */}
           <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
             <div className="mb-4">
               <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center mb-4">
@@ -255,21 +287,7 @@ export default function Home() {
             </Button>
           </div>
 
-          <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
-            <div className="mb-4">
-              <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center mb-4">
-                <Palette className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">我的作品集</h3>
-              <p className="text-gray-600 text-sm">
-                管理您的艺术作品和资料
-              </p>
-            </div>
-            <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-2xl py-3">
-              管理作品集
-            </Button>
-          </div>
-
+          {/* 3. AI匹配 */}
           <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
             <div className="mb-4">
               <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center mb-4">
@@ -285,6 +303,23 @@ export default function Home() {
             </Button>
           </div>
 
+          {/* 4. 我的作品集 (投稿准备) */}
+          <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
+            <div className="mb-4">
+              <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center mb-4">
+                <Palette className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">我的作品集</h3>
+              <p className="text-gray-600 text-sm">
+                管理您的艺术作品和资料
+              </p>
+            </div>
+            <Button className="w-full bg-purple-600 hover:bg-purple-700 text-white rounded-2xl py-3">
+              管理作品集
+            </Button>
+          </div>
+
+          {/* 5. 投稿记录 */}
           <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
             <div className="mb-4">
               <div className="w-14 h-14 bg-orange-600 rounded-2xl flex items-center justify-center mb-4">
@@ -300,21 +335,7 @@ export default function Home() {
             </Button>
           </div>
 
-          <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
-            <div className="mb-4">
-              <div className="w-14 h-14 bg-cyan-600 rounded-2xl flex items-center justify-center mb-4">
-                <Database className="w-7 h-7 text-white" />
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-2">数据收集</h3>
-              <p className="text-gray-600 text-sm">
-                管理爬虫和数据源
-              </p>
-            </div>
-            <Button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white rounded-2xl py-3">
-              数据管理
-            </Button>
-          </div>
-
+          {/* 6. 系统设置 */}
           <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
             <div className="mb-4">
               <div className="w-14 h-14 bg-gray-700 rounded-2xl flex items-center justify-center mb-4">

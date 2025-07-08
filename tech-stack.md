@@ -209,3 +209,41 @@ npx prisma migrate deploy
 ```
 
 这个架构的最大优势是**可以从简单开始，按需复杂化**。您觉得这个技术栈规划如何？需要我详细解释某个部分吗？
+
+
+
+
+
+
+数据收集的部分：
+
+📋 技术架构选择
+基于您的 Next.js 项目，我建议采用 全栈开发 方式：
+
+前端 (Next.js)：
+
+数据展示界面
+搜索和筛选功能
+用户交互
+后端 (Next.js API Routes + Python)：
+
+Next.js API Routes：处理前端请求，数据 CRUD
+Python 爬虫：独立的数据收集服务
+数据库：PostgreSQL (已配置)
+🔄 开发流程
+阶段 1：数据库设计完善
+完善 SubmissionInfo 模型
+添加数据源管理
+设计爬虫任务调度
+阶段 2：Python 爬虫开发
+创建独立的 Python 爬虫服务
+支持多数据源（FilmFreeway、艺术网站等）
+数据清洗和标准化
+阶段 3：前端界面开发
+参考 FilmFreeway 设计数据展示页面
+实现搜索、筛选、分页功能
+数据详情页面
+阶段 4：API 集成
+Next.js API Routes 连接数据库
+前后端数据交互
+实时数据更新
