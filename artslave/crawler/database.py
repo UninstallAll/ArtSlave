@@ -1,34 +1,52 @@
-import psycopg2
-from psycopg2.extras import RealDictCursor
+import sqlite3
 import json
 from datetime import datetime
-from config import DATABASE_URL
+from pathlib import Path
 
 class DatabaseManager:
     def __init__(self):
         self.connection = None
         self.connect()
-    
+
     def connect(self):
-        """连接数据库"""
+        """连接 SQLite 数据库"""
         try:
-            self.connection = psycopg2.connect(DATABASE_URL)
-            print("数据库连接成功")
+            # 确保数据目录存在
+            data_dir = Path(__file__).parent.parent / 'data'
+            data_dir.mkdir(exist_ok=True)
+
+            # SQLite 数据库文件路径
+            db_path = data_dir / 'artslave.db'
+
+            self.connection = sqlite3.connect(str(db_path))
+            self.connection.row_factory = sqlite3.Row  # 使结果可以像字典一样访问
+            print(f"✓ SQLite 数据库连接成功: {db_path}")
         except Exception as e:
-            print(f"数据库连接失败: {e}")
-    
+            print(f"✗ 数据库连接失败: {e}")
+            self.connection = None
+
     def close(self):
         """关闭数据库连接"""
         if self.connection:
             self.connection.close()
-    
+
     def execute_query(self, query, params=None):
         """执行查询"""
         try:
-            with self.connection.cursor(cursor_factory=RealDictCursor) as cursor:
+            cursor = self.connection.cursor()
+            if params:
                 cursor.execute(query, params)
-                self.connection.commit()
-                return cursor.fetchall()
+            else:
+                cursor.execute(query)
+
+            self.connection.commit()
+
+            # 如果是 SELECT 查询，返回结果
+            if query.strip().upper().startswith('SELECT'):
+                return [dict(row) for row in cursor.fetchall()]
+            else:
+                return cursor.rowcount
+
         except Exception as e:
             print(f"查询执行失败: {e}")
             self.connection.rollback()
@@ -36,101 +54,91 @@ class DatabaseManager:
     
     def insert_submission_info(self, data):
         """插入投稿信息"""
+        # 生成唯一ID
+        submission_id = str(int(datetime.now().timestamp() * 1000))
+
         query = """
-        INSERT INTO submission_infos (
-            title, description, type, organizer, deadline, 
-            location, website, email, phone, fee, prize, 
+        INSERT OR REPLACE INTO submissions (
+            id, title, description, type, organizer, deadline,
+            location, website, email, phone, fee, prize,
             requirements, tags, is_active, created_at, updated_at
-        ) VALUES (
-            %(title)s, %(description)s, %(type)s, %(organizer)s, %(deadline)s,
-            %(location)s, %(website)s, %(email)s, %(phone)s, %(fee)s, %(prize)s,
-            %(requirements)s, %(tags)s, %(is_active)s, %(created_at)s, %(updated_at)s
-        ) ON CONFLICT (title, organizer) DO UPDATE SET
-            description = EXCLUDED.description,
-            deadline = EXCLUDED.deadline,
-            updated_at = EXCLUDED.updated_at
-        RETURNING id;
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """
-        
-        now = datetime.now()
-        params = {
-            'title': data.get('title'),
-            'description': data.get('description'),
-            'type': data.get('type', 'OTHER'),
-            'organizer': data.get('organizer'),
-            'deadline': data.get('deadline'),
-            'location': data.get('location'),
-            'website': data.get('website'),
-            'email': data.get('email'),
-            'phone': data.get('phone'),
-            'fee': data.get('fee'),
-            'prize': data.get('prize'),
-            'requirements': json.dumps(data.get('requirements', {})),
-            'tags': data.get('tags', []),
-            'is_active': True,
-            'created_at': now,
-            'updated_at': now
-        }
-        
-        return self.execute_query(query, params)
-    
-    def create_crawl_job(self, data_source_id=None):
-        """创建爬虫任务记录"""
-        query = """
-        INSERT INTO crawl_jobs (data_source_id, status, created_at)
-        VALUES (%(data_source_id)s, 'pending', %(created_at)s)
-        RETURNING id;
-        """
-        
-        params = {
-            'data_source_id': data_source_id,
-            'created_at': datetime.now()
-        }
-        
+
+        now = datetime.now().isoformat()
+        params = (
+            submission_id,
+            data.get('title'),
+            data.get('description'),
+            data.get('type', 'OTHER'),
+            data.get('organizer'),
+            data.get('deadline'),
+            data.get('location'),
+            data.get('website'),
+            data.get('email'),
+            data.get('phone'),
+            data.get('fee'),
+            data.get('prize'),
+            json.dumps(data.get('requirements', {})),
+            json.dumps(data.get('tags', [])),
+            True,
+            now,
+            now
+        )
+
         result = self.execute_query(query, params)
-        return result[0]['id'] if result else None
+        return submission_id if result else None
     
+    def create_crawl_job(self, data_source_name="演示爬虫"):
+        """创建爬虫任务记录"""
+        job_id = str(int(datetime.now().timestamp() * 1000))
+
+        query = """
+        INSERT INTO crawl_jobs (id, data_source_name, status, started_at, created_at)
+        VALUES (?, ?, 'pending', ?, ?)
+        """
+
+        now = datetime.now().isoformat()
+        params = (job_id, data_source_name, now, now)
+
+        result = self.execute_query(query, params)
+        return job_id if result else None
+
     def update_crawl_job(self, job_id, status, items_found=0, items_added=0, error_message=None):
         """更新爬虫任务状态"""
         query = """
-        UPDATE crawl_jobs SET 
-            status = %(status)s,
-            items_found = %(items_found)s,
-            items_added = %(items_added)s,
-            error_message = %(error_message)s,
-            completed_at = %(completed_at)s
-        WHERE id = %(job_id)s;
+        UPDATE crawl_jobs SET
+            status = ?,
+            items_found = ?,
+            items_added = ?,
+            error_message = ?,
+            completed_at = ?,
+            updated_at = ?
+        WHERE id = ?
         """
-        
-        params = {
-            'job_id': job_id,
-            'status': status,
-            'items_found': items_found,
-            'items_added': items_added,
-            'error_message': error_message,
-            'completed_at': datetime.now() if status in ['completed', 'failed'] else None
-        }
-        
+
+        now = datetime.now().isoformat()
+        completed_at = now if status in ['completed', 'failed'] else None
+
+        params = (status, items_found, items_added, error_message, completed_at, now, job_id)
+
         return self.execute_query(query, params)
     
     def get_data_sources(self):
         """获取所有数据源"""
-        query = "SELECT * FROM data_sources WHERE is_active = true;"
+        query = "SELECT * FROM data_sources WHERE is_active = 1"
         return self.execute_query(query)
-    
+
     def update_data_source_last_crawled(self, source_id):
         """更新数据源最后爬取时间"""
         query = """
-        UPDATE data_sources SET 
-            last_crawled = %(last_crawled)s,
-            updated_at = %(updated_at)s
-        WHERE id = %(source_id)s;
+        UPDATE data_sources SET
+            last_crawled = ?,
+            updated_at = ?
+        WHERE id = ?
         """
-        
-        params = {
-            'source_id': source_id,
-            'last_crawled': datetime.now(),
-            'updated_at': datetime.now()
-        }
-        
+
+        now = datetime.now().isoformat()
+        params = (now, now, source_id)
+
         return self.execute_query(query, params)

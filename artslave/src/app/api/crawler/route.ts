@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-async function handleListCrawlers() {
+async function handleListCrawlers(): Promise<NextResponse> {
   return new Promise((resolve) => {
     const crawlerPath = path.join(process.cwd(), 'crawler', 'crawler_manager.py')
     const pythonProcess = spawn('python', [crawlerPath, 'list'])
@@ -79,7 +79,7 @@ async function handleListCrawlers() {
   })
 }
 
-async function handleRunCrawler(crawlerName: string) {
+async function handleRunCrawler(crawlerName: string): Promise<NextResponse> {
   if (!crawlerName) {
     return NextResponse.json({ error: '请指定爬虫名称' }, { status: 400 })
   }
@@ -141,7 +141,7 @@ async function handleRunCrawler(crawlerName: string) {
   })
 }
 
-async function handleRunAllCrawlers() {
+async function handleRunAllCrawlers(): Promise<NextResponse> {
   return new Promise((resolve) => {
     const crawlerPath = path.join(process.cwd(), 'crawler', 'crawler_manager.py')
     const pythonProcess = spawn('python', [crawlerPath, 'run-all'])
@@ -176,7 +176,7 @@ async function handleRunAllCrawlers() {
   })
 }
 
-async function handleStopCrawler(crawlerName: string) {
+async function handleStopCrawler(crawlerName: string): Promise<NextResponse> {
   const crawlerInfo = runningCrawlers.get(crawlerName)
   
   if (!crawlerInfo) {
@@ -198,7 +198,7 @@ async function handleStopCrawler(crawlerName: string) {
   }
 }
 
-async function handleGetStats() {
+async function handleGetStats(): Promise<NextResponse> {
   return new Promise((resolve) => {
     const crawlerPath = path.join(process.cwd(), 'crawler', 'crawler_manager.py')
     const pythonProcess = spawn('python', [crawlerPath, 'stats'])
@@ -224,7 +224,7 @@ async function handleGetStats() {
   })
 }
 
-async function handleGetStatus() {
+async function handleGetStatus(): Promise<NextResponse> {
   const status = Array.from(runningCrawlers.entries()).map(([name, info]) => ({
     name,
     status: info.status,
