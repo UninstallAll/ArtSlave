@@ -5,17 +5,23 @@ import { useTheme } from '@/contexts/ThemeContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { 
-  Database, 
-  Plus, 
-  Search, 
-  Edit, 
-  Trash2, 
+import {
+  Database,
+  Plus,
+  Search,
+  Edit,
+  Trash2,
   Eye,
   Filter,
   Download,
   Upload,
-  RefreshCw
+  RefreshCw,
+  CheckSquare,
+  Square,
+  Trash,
+  FileDown,
+  Star,
+  Archive
 } from 'lucide-react'
 import ThemeSelector from '@/components/ThemeSelector'
 import SubmissionForm from '@/components/SubmissionForm'
@@ -31,6 +37,8 @@ export default function DataManagementPage() {
   const [selectedType, setSelectedType] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
   const [editingSubmission, setEditingSubmission] = useState<SubmissionData | null>(null)
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
+  const [showBatchActions, setShowBatchActions] = useState(false)
 
   const db = getDatabaseAPI()
 
@@ -112,6 +120,146 @@ export default function DataManagementPage() {
     }
     setEditingSubmission(null)
     setShowAddForm(false)
+  }
+
+  // Batch management functions
+  const handleSelectAll = () => {
+    if (selectedItems.size === submissions.length) {
+      setSelectedItems(new Set())
+    } else {
+      setSelectedItems(new Set(submissions.map(s => s.id)))
+    }
+  }
+
+  const handleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedItems)
+    if (newSelected.has(id)) {
+      newSelected.delete(id)
+    } else {
+      newSelected.add(id)
+    }
+    setSelectedItems(newSelected)
+  }
+
+  const handleBatchDelete = async () => {
+    if (selectedItems.size === 0) return
+
+    const confirmed = confirm(`确定要删除选中的 ${selectedItems.size} 条投稿信息吗？`)
+    if (!confirmed) return
+
+    try {
+      const deletePromises = Array.from(selectedItems).map(id => db.deleteSubmission(id))
+      await Promise.all(deletePromises)
+
+      setSubmissions(submissions.filter(s => !selectedItems.has(s.id)))
+      setSelectedItems(new Set())
+      alert(`成功删除 ${selectedItems.size} 条记录`)
+    } catch (error) {
+      console.error('Batch delete failed:', error)
+      alert('批量删除失败')
+    }
+  }
+
+  const handleBatchExport = () => {
+    if (selectedItems.size === 0) return
+
+    const selectedSubmissions = submissions.filter(s => selectedItems.has(s.id))
+    const csvContent = generateCSV(selectedSubmissions)
+    downloadCSV(csvContent, `submissions_${new Date().toISOString().split('T')[0]}.csv`)
+  }
+
+  const generateCSV = (data: SubmissionData[]) => {
+    const headers = ['标题', '类型', '主办方', '地点', '截止日期', '网址', '描述', '金牌推荐']
+    const rows = data.map(item => [
+      item.title,
+      getTypeLabel(item.type),
+      item.organizer,
+      item.location,
+      item.deadline,
+      item.website || '',
+      item.description || '',
+      item.isGold ? '是' : '否'
+    ])
+
+    return [headers, ...rows].map(row =>
+      row.map(field => `"${field}"`).join(',')
+    ).join('\n')
+  }
+
+  const downloadCSV = (content: string, filename: string) => {
+    const blob = new Blob(['\uFEFF' + content], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    const url = URL.createObjectURL(blob)
+    link.setAttribute('href', url)
+    link.setAttribute('download', filename)
+    link.style.visibility = 'hidden'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handleBatchMarkGold = async () => {
+    if (selectedItems.size === 0) return
+
+    const confirmed = confirm(`确定要将选中的 ${selectedItems.size} 条投稿信息标记为金牌推荐吗？`)
+    if (!confirmed) return
+
+    try {
+      const updatedSubmissions = submissions.map(submission => {
+        if (selectedItems.has(submission.id)) {
+          return { ...submission, isGold: true }
+        }
+        return submission
+      })
+
+      // Update in database (assuming we have batch update API)
+      const updatePromises = Array.from(selectedItems).map(id => {
+        const submission = submissions.find(s => s.id === id)
+        if (submission) {
+          return db.updateSubmission(id, { ...submission, isGold: true })
+        }
+      })
+
+      await Promise.all(updatePromises.filter(Boolean))
+      setSubmissions(updatedSubmissions)
+      setSelectedItems(new Set())
+      alert(`成功标记 ${selectedItems.size} 条记录为金牌推荐`)
+    } catch (error) {
+      console.error('Batch mark gold failed:', error)
+      alert('批量标记失败')
+    }
+  }
+
+  const handleBatchUnmarkGold = async () => {
+    if (selectedItems.size === 0) return
+
+    const confirmed = confirm(`确定要取消选中的 ${selectedItems.size} 条投稿信息的金牌推荐标记吗？`)
+    if (!confirmed) return
+
+    try {
+      const updatedSubmissions = submissions.map(submission => {
+        if (selectedItems.has(submission.id)) {
+          return { ...submission, isGold: false }
+        }
+        return submission
+      })
+
+      // Update in database
+      const updatePromises = Array.from(selectedItems).map(id => {
+        const submission = submissions.find(s => s.id === id)
+        if (submission) {
+          return db.updateSubmission(id, { ...submission, isGold: false })
+        }
+      })
+
+      await Promise.all(updatePromises.filter(Boolean))
+      setSubmissions(updatedSubmissions)
+      setSelectedItems(new Set())
+      alert(`成功取消 ${selectedItems.size} 条记录的金牌推荐标记`)
+    } catch (error) {
+      console.error('Batch unmark gold failed:', error)
+      alert('批量取消标记失败')
+    }
   }
 
   const getTypeLabel = (type: string) => {
@@ -224,7 +372,7 @@ export default function DataManagementPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex space-x-3">
+          <div className="flex flex-wrap gap-3">
             <Button
               onClick={() => setShowAddForm(true)}
               className={`${themeClasses.button} rounded-2xl`}
@@ -244,17 +392,141 @@ export default function DataManagementPage() {
               className={`rounded-2xl border-2 ${themeClasses.border} ${themeClasses.buttonHover}`}
             >
               <Download className="w-4 h-4 mr-2" />
-              导出数据
+              导出全部
+            </Button>
+
+            {/* Batch Management Toggle */}
+            <Button
+              variant={showBatchActions ? "default" : "outline"}
+              onClick={() => {
+                setShowBatchActions(!showBatchActions)
+                setSelectedItems(new Set())
+              }}
+              className={`rounded-2xl border-2 ${themeClasses.border} ${showBatchActions ? themeClasses.button : themeClasses.buttonHover}`}
+            >
+              <CheckSquare className="w-4 h-4 mr-2" />
+              批量管理
             </Button>
           </div>
+
+          {/* Batch Actions Bar */}
+          {showBatchActions && (
+            <div className={`mt-4 p-4 ${themeClasses.cardBackground} border-2 ${themeClasses.border} rounded-2xl`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSelectAll}
+                    className="rounded-lg"
+                  >
+                    {selectedItems.size === submissions.length ? (
+                      <CheckSquare className="w-4 h-4 mr-2" />
+                    ) : (
+                      <Square className="w-4 h-4 mr-2" />
+                    )}
+                    {selectedItems.size === submissions.length ? '取消全选' : '全选'}
+                  </Button>
+                  <span className={`text-sm ${themeClasses.textSecondary}`}>
+                    已选择 {selectedItems.size} 项
+                  </span>
+                </div>
+
+                {selectedItems.size > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBatchExport}
+                      className="rounded-lg"
+                    >
+                      <FileDown className="w-4 h-4 mr-2" />
+                      导出选中
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBatchMarkGold}
+                      className="rounded-lg text-yellow-600 hover:text-yellow-700 border-yellow-200 hover:border-yellow-300"
+                    >
+                      <Star className="w-4 h-4 mr-2" />
+                      标记金牌
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBatchUnmarkGold}
+                      className="rounded-lg text-gray-600 hover:text-gray-700 border-gray-200 hover:border-gray-300"
+                    >
+                      <Archive className="w-4 h-4 mr-2" />
+                      取消金牌
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBatchDelete}
+                      className="rounded-lg text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
+                    >
+                      <Trash className="w-4 h-4 mr-2" />
+                      删除选中
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Statistics Summary */}
+        {showBatchActions && submissions.length > 0 && (
+          <div className={`${themeClasses.cardBackground} rounded-3xl border-2 ${themeClasses.border} p-6 mb-6`}>
+            <h3 className={`text-lg font-semibold ${themeClasses.textPrimary} mb-4`}>数据统计</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+              <div className="text-center">
+                <div className={`text-2xl font-bold ${themeClasses.textPrimary}`}>{submissions.length}</div>
+                <div className={`text-sm ${themeClasses.textSecondary}`}>总计</div>
+              </div>
+              <div className="text-center">
+                <div className={`text-2xl font-bold text-yellow-600`}>
+                  {submissions.filter(s => s.isGold).length}
+                </div>
+                <div className={`text-sm ${themeClasses.textSecondary}`}>金牌推荐</div>
+              </div>
+              <div className="text-center">
+                <div className={`text-2xl font-bold text-blue-600`}>
+                  {submissions.filter(s => s.type === 'EXHIBITION').length}
+                </div>
+                <div className={`text-sm ${themeClasses.textSecondary}`}>艺术展览</div>
+              </div>
+              <div className="text-center">
+                <div className={`text-2xl font-bold text-green-600`}>
+                  {submissions.filter(s => s.type === 'RESIDENCY').length}
+                </div>
+                <div className={`text-sm ${themeClasses.textSecondary}`}>驻地项目</div>
+              </div>
+              <div className="text-center">
+                <div className={`text-2xl font-bold text-purple-600`}>
+                  {submissions.filter(s => s.type === 'COMPETITION').length}
+                </div>
+                <div className={`text-sm ${themeClasses.textSecondary}`}>比赛征集</div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Data Table */}
         <div className={`${themeClasses.cardBackground} rounded-3xl border-2 ${themeClasses.border} overflow-hidden`}>
           <div className="p-6">
-            <h2 className={`text-lg font-semibold ${themeClasses.textPrimary} mb-4`}>
-              投稿信息列表 ({submissions.length} 条)
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className={`text-lg font-semibold ${themeClasses.textPrimary}`}>
+                投稿信息列表 ({submissions.length} 条)
+              </h2>
+              {showBatchActions && selectedItems.size > 0 && (
+                <div className={`text-sm ${themeClasses.textSecondary} bg-blue-50 px-3 py-1 rounded-full`}>
+                  已选择 {selectedItems.size} / {submissions.length} 条
+                </div>
+              )}
+            </div>
             
             {loading ? (
               <div className="text-center py-8">
@@ -271,6 +543,20 @@ export default function DataManagementPage() {
                 <table className="w-full">
                   <thead>
                     <tr className={`border-b ${themeClasses.border}`}>
+                      {showBatchActions && (
+                        <th className={`text-left py-3 px-4 font-medium ${themeClasses.textPrimary} w-12`}>
+                          <button
+                            onClick={handleSelectAll}
+                            className="p-1 hover:bg-gray-100 rounded"
+                          >
+                            {selectedItems.size === submissions.length ? (
+                              <CheckSquare className="w-4 h-4" />
+                            ) : (
+                              <Square className="w-4 h-4" />
+                            )}
+                          </button>
+                        </th>
+                      )}
                       <th className={`text-left py-3 px-4 font-medium ${themeClasses.textPrimary}`}>标题</th>
                       <th className={`text-left py-3 px-4 font-medium ${themeClasses.textPrimary}`}>类型</th>
                       <th className={`text-left py-3 px-4 font-medium ${themeClasses.textPrimary}`}>主办方</th>
@@ -281,7 +567,26 @@ export default function DataManagementPage() {
                   </thead>
                   <tbody>
                     {submissions.map((submission) => (
-                      <tr key={submission.id} className={`border-b ${themeClasses.border} hover:bg-gray-50`}>
+                      <tr
+                        key={submission.id}
+                        className={`border-b ${themeClasses.border} hover:bg-gray-50 ${
+                          selectedItems.has(submission.id) ? 'bg-blue-50' : ''
+                        }`}
+                      >
+                        {showBatchActions && (
+                          <td className="py-3 px-4">
+                            <button
+                              onClick={() => handleSelectItem(submission.id)}
+                              className="p-1 hover:bg-gray-100 rounded"
+                            >
+                              {selectedItems.has(submission.id) ? (
+                                <CheckSquare className="w-4 h-4 text-blue-600" />
+                              ) : (
+                                <Square className="w-4 h-4" />
+                              )}
+                            </button>
+                          </td>
+                        )}
                         <td className={`py-3 px-4 ${themeClasses.textPrimary}`}>
                           <div className="font-medium">{submission.title}</div>
                           {submission.isGold && (

@@ -21,7 +21,7 @@ export default function SubmissionForm({ submission, onClose, onSave }: Submissi
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
-    type: 'EXHIBITION' as const,
+    type: 'EXHIBITION' as 'EXHIBITION' | 'RESIDENCY' | 'COMPETITION' | 'GRANT' | 'CONFERENCE',
     organizer: '',
     location: '',
     country: '',
@@ -46,7 +46,7 @@ export default function SubmissionForm({ submission, onClose, onSave }: Submissi
     if (submission) {
       setFormData({
         title: submission.title || '',
-        type: submission.type || 'EXHIBITION',
+        type: (submission.type || 'EXHIBITION') as 'EXHIBITION' | 'RESIDENCY' | 'COMPETITION' | 'GRANT' | 'CONFERENCE',
         organizer: submission.organizer || '',
         location: submission.location || '',
         country: submission.country || '',

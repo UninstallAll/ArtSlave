@@ -1,0 +1,374 @@
+{
+  "name": "自动化数据收集工作流",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 6
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "定时触发器",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "url": "http://localhost:3000/api/datasources",
+        "options": {}
+      },
+      "id": "2",
+      "name": "获取数据源列表",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 筛选活跃的数据源\nconst dataSources = $input.first().json.data;\nconst activeDataSources = [];\n\nfor (const source of dataSources) {\n  if (source.isActive) {\n    // 检查是否需要爬取（基于频率）\n    const lastCrawled = source.lastCrawled ? new Date(source.lastCrawled) : null;\n    const now = new Date();\n    const crawlFreqMs = source.crawlFreq * 60 * 60 * 1000; // 转换为毫秒\n    \n    if (!lastCrawled || (now.getTime() - lastCrawled.getTime()) >= crawlFreqMs) {\n      activeDataSources.push({\n        id: source.id,\n        name: source.name,\n        url: source.url,\n        type: source.type,\n        crawlerName: source.crawlerName || 'demo'\n      });\n    }\n  }\n}\n\nreturn activeDataSources.map(source => ({ json: source }));"
+      },
+      "id": "3",
+      "name": "筛选需要爬取的数据源",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "http://localhost:3000/api/crawler",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "action",
+              "value": "run"
+            },
+            {
+              "name": "crawler",
+              "value": "={{ $json.crawlerName }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "4",
+      "name": "启动爬虫",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [900, 300]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "seconds"
+      },
+      "id": "5",
+      "name": "等待爬虫完成",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1120, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "url": "http://localhost:3000/api/crawler/status",
+        "options": {}
+      },
+      "id": "6",
+      "name": "检查爬虫状态",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1340, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "completed",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7",
+      "name": "检查是否完成",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "PUT",
+        "url": "http://localhost:3000/api/datasources/={{ $('筛选需要爬取的数据源').item.json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "lastCrawled",
+              "value": "={{ new Date().toISOString() }}"
+            },
+            {
+              "name": "itemsFound",
+              "value": "={{ $json.itemsFound || 0 }}"
+            },
+            {
+              "name": "status",
+              "value": "completed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8",
+      "name": "更新数据源状态",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 240]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "http://localhost:3000/api/notifications",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "type",
+              "value": "crawler_success"
+            },
+            {
+              "name": "dataSourceId",
+              "value": "={{ $('筛选需要爬取的数据源').item.json.id }}"
+            },
+            {
+              "name": "dataSourceName",
+              "value": "={{ $('筛选需要爬取的数据源').item.json.name }}"
+            },
+            {
+              "name": "itemsFound",
+              "value": "={{ $json.itemsFound || 0 }}"
+            },
+            {
+              "name": "message",
+              "value": "数据收集完成"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "9",
+      "name": "发送成功通知",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [2000, 240]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "http://localhost:3000/api/notifications",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "type",
+              "value": "crawler_failed"
+            },
+            {
+              "name": "dataSourceId",
+              "value": "={{ $('筛选需要爬取的数据源').item.json.id }}"
+            },
+            {
+              "name": "dataSourceName",
+              "value": "={{ $('筛选需要爬取的数据源').item.json.name }}"
+            },
+            {
+              "name": "error",
+              "value": "={{ $json.error || '未知错误' }}"
+            },
+            {
+              "name": "message",
+              "value": "数据收集失败"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "10",
+      "name": "发送失败通知",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 360]
+    }
+  ],
+  "connections": {
+    "定时触发器": {
+      "main": [
+        [
+          {
+            "node": "获取数据源列表",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "获取数据源列表": {
+      "main": [
+        [
+          {
+            "node": "筛选需要爬取的数据源",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "筛选需要爬取的数据源": {
+      "main": [
+        [
+          {
+            "node": "启动爬虫",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "启动爬虫": {
+      "main": [
+        [
+          {
+            "node": "等待爬虫完成",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "等待爬虫完成": {
+      "main": [
+        [
+          {
+            "node": "检查爬虫状态",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "检查爬虫状态": {
+      "main": [
+        [
+          {
+            "node": "检查是否完成",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "检查是否完成": {
+      "main": [
+        [
+          {
+            "node": "更新数据源状态",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "发送失败通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "更新数据源状态": {
+      "main": [
+        [
+          {
+            "node": "发送成功通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "2",
+  "tags": [
+    {
+      "createdAt": "2025-01-11T00:00:00.000Z",
+      "updatedAt": "2025-01-11T00:00:00.000Z",
+      "id": "1",
+      "name": "ArtSlave"
+    }
+  ]
+}

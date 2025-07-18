@@ -1,0 +1,299 @@
+{
+  "name": "ArtSlave 数据同步工作流",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "1",
+      "name": "开始",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "url": "http://localhost:3000/api/submissions",
+        "options": {}
+      },
+      "id": "2",
+      "name": "获取投稿数据",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "1",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3",
+      "name": "检查响应",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 处理投稿数据\nconst submissions = $input.first().json.data;\nconst processedData = [];\n\nfor (const submission of submissions) {\n  // 检查是否需要AI匹配\n  if (submission.type === 'EXHIBITION' && !submission.aiMatched) {\n    processedData.push({\n      id: submission.id,\n      title: submission.title,\n      type: submission.type,\n      deadline: submission.deadline,\n      needsAiMatching: true,\n      originalData: submission\n    });\n  }\n}\n\nreturn processedData.map(item => ({ json: item }));"
+      },
+      "id": "4",
+      "name": "处理数据",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [900, 240]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "http://localhost:3000/api/ai/match",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "submissionId",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "submissionData",
+              "value": "={{ $json.originalData }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5",
+      "name": "AI 匹配分析",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 240]
+    },
+    {
+      "parameters": {
+        "httpMethod": "PUT",
+        "url": "http://localhost:3000/api/submissions/={{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "aiMatched",
+              "value": true
+            },
+            {
+              "name": "aiMatchScore",
+              "value": "={{ $json.matchScore }}"
+            },
+            {
+              "name": "aiRecommendations",
+              "value": "={{ $json.recommendations }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6",
+      "name": "更新投稿记录",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1340, 240]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "http://localhost:3000/api/notifications",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "type",
+              "value": "ai_match_complete"
+            },
+            {
+              "name": "submissionId",
+              "value": "={{ $json.id }}"
+            },
+            {
+              "name": "message",
+              "value": "AI 匹配分析完成"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7",
+      "name": "发送通知",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1560, 240]
+    },
+    {
+      "parameters": {
+        "message": "数据同步工作流执行完成",
+        "options": {}
+      },
+      "id": "8",
+      "name": "记录日志",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1780, 240]
+    },
+    {
+      "parameters": {
+        "message": "API 响应失败",
+        "options": {}
+      },
+      "id": "9",
+      "name": "错误处理",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 360]
+    }
+  ],
+  "connections": {
+    "开始": {
+      "main": [
+        [
+          {
+            "node": "获取投稿数据",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "获取投稿数据": {
+      "main": [
+        [
+          {
+            "node": "检查响应",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "检查响应": {
+      "main": [
+        [
+          {
+            "node": "处理数据",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "错误处理",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "处理数据": {
+      "main": [
+        [
+          {
+            "node": "AI 匹配分析",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 匹配分析": {
+      "main": [
+        [
+          {
+            "node": "更新投稿记录",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "更新投稿记录": {
+      "main": [
+        [
+          {
+            "node": "发送通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "发送通知": {
+      "main": [
+        [
+          {
+            "node": "记录日志",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "1",
+  "tags": [
+    {
+      "createdAt": "2025-01-11T00:00:00.000Z",
+      "updatedAt": "2025-01-11T00:00:00.000Z",
+      "id": "1",
+      "name": "ArtSlave"
+    }
+  ]
+}

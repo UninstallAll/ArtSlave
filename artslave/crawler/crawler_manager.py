@@ -7,9 +7,23 @@ ArtSlave 爬虫管理器
 import sys
 import json
 import argparse
+import logging
+import traceback
 from datetime import datetime
 from database import DatabaseManager
 from demo_crawler import DemoCrawler
+
+# 配置详细日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('crawler_detailed.log'),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
 
 class CrawlerManager:
     def __init__(self):
@@ -27,38 +41,59 @@ class CrawlerManager:
     
     def run_crawler(self, crawler_name):
         """运行指定的爬虫"""
+        job_start_time = datetime.now()
+        logger.info(f"开始运行爬虫: {crawler_name}")
+
         if crawler_name not in self.crawlers:
-            print(f"错误: 爬虫 '{crawler_name}' 不存在")
+            error_msg = f"爬虫 '{crawler_name}' 不存在"
+            logger.error(error_msg)
+            print(f"错误: {error_msg}")
             return False
-        
+
         try:
             # 创建爬虫任务记录
             job_id = self.db.create_crawl_job()
+            logger.info(f"创建爬虫任务: {job_id}")
             print(f"创建爬虫任务: {job_id}")
-            
+
             # 更新任务状态为运行中
             self.db.update_crawl_job(job_id, 'running')
-            
+            logger.info(f"任务 {job_id} 状态更新为运行中")
+
             # 实例化并运行爬虫
             crawler_class = self.crawlers[crawler_name]
             crawler = crawler_class()
+            logger.info(f"初始化爬虫 {crawler_name} 成功")
+
             crawler.run()
-            
+            execution_time = (datetime.now() - job_start_time).total_seconds()
+
             # 更新任务状态为完成
+            items_found = getattr(crawler, 'items_found', 0)
+            items_added = getattr(crawler, 'items_added', 0)
+
             self.db.update_crawl_job(
-                job_id, 
-                'completed', 
-                items_found=crawler.items_found,
-                items_added=crawler.items_added
+                job_id,
+                'completed',
+                items_found=items_found,
+                items_added=items_added
             )
-            
+
+            logger.info(f"爬虫任务 {job_id} 完成: 发现 {items_found} 条数据，添加 {items_added} 条数据，耗时 {execution_time:.2f} 秒")
             print(f"爬虫任务完成: {job_id}")
             return True
-            
+
         except Exception as e:
+            execution_time = (datetime.now() - job_start_time).total_seconds()
+            error_details = traceback.format_exc()
+            logger.error(f"爬虫 {crawler_name} 运行失败，耗时 {execution_time:.2f} 秒")
+            logger.error(f"错误详情: {e}")
+            logger.debug(f"完整错误堆栈:\n{error_details}")
+
             print(f"爬虫运行失败: {e}")
             if 'job_id' in locals():
                 self.db.update_crawl_job(job_id, 'failed', error_message=str(e))
+                logger.info(f"任务 {job_id} 状态更新为失败")
             return False
     
     def run_all_crawlers(self):

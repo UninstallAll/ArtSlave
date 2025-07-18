@@ -1,0 +1,17 @@
+{
+  "database": {
+    "type": "sqlite",
+    "database": "./n8n.sqlite"
+  },
+  "credentials": {
+    "overwrite": {
+      "data": "{}"
+    }
+  },
+  "nodes": {
+    "exclude": []
+  },
+  "settings": {
+    "timezone": "Asia/Shanghai"
+  }
+}
