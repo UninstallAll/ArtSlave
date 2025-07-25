@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
@@ -60,13 +60,13 @@ model User {
   userType        UserType?
   experienceLevel ExperienceLevel?
   location        String?
-  languages       String[] // JSON array of languages
+  languages       String? // JSON string of languages
   website         String?
   socialMedia     Json? // JSON object for social media links
 
   // 艺术相关信息
   artistStatement String?
-  artFields       String[] // 艺术领域/专业方向
+  artFields       String? // 艺术领域/专业方向 JSON string
   education       Json? // 教育背景 JSON
   exhibitions     Json? // 展览历史 JSON
   awards          Json? // 获奖经历 JSON
@@ -90,7 +90,7 @@ model Portfolio {
   year        Int?
   imageUrl    String?
   fileUrl     String? // 作品文件URL
-  tags        String[] // 标签
+  tags        String? // 标签 JSON string
   isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -116,7 +116,7 @@ model SubmissionInfo {
   fee         Decimal? // 费用
   prize       String? // 奖金/福利
   requirements Json? // 投稿要求 JSON
-  tags        String[] // 标签
+  tags        String? // 标签 JSON string
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -198,4 +198,163 @@ model CrawlJob {
   createdAt    DateTime  @default(now())
 
   @@map("crawl_jobs")
+}
+
+// InfoReceiver 相关表
+
+// 原始消息表
+model RawMessage {
+  id           String    @id @default(cuid())
+  source       String    // 消息来源：email, wechat, social等
+  content      String    // 原始内容
+  links        String?   // 链接列表 JSON string
+  images       String?   // 图片列表 JSON string
+  attachments  String?   // 附件列表 JSON string
+  metadata     Json?     // 元数据
+  status       String    @default("pending") // 处理状态
+  processed    Boolean   @default(false) // 是否已处理
+  resourceId   String?   // 关联的资源ID
+  errorMessage String?   // 错误信息
+  retryCount   Int       @default(0) // 重试次数
+  priority     Int       @default(0) // 优先级
+  scheduledAt  DateTime? // 计划处理时间
+  processedAt  DateTime? // 实际处理时间
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  // 关联关系
+  processedResources ProcessedResource[]
+
+  @@map("raw_messages")
+}
+
+// 处理后的资源表
+model ProcessedResource {
+  id            String   @id @default(cuid())
+  rawMessageId  String?
+  title         String?
+  category      String?
+  deadline      DateTime?
+  location      String?
+  organizer     String?
+  description   String?
+  requirements  String?
+  fee           String?
+  contact       String?
+  originalUrl   String?
+  confidence    Float    @default(0)
+  reasoning     String?
+  status        String   @default("pending") // pending, verified, duplicate, rejected
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // 关联关系
+  rawMessage RawMessage? @relation(fields: [rawMessageId], references: [id], onDelete: SetNull)
+
+  @@map("processed_resources")
+}
+
+// 基础资源表
+model BaseResource {
+  id               String    @id @default(cuid())
+  title            String
+  category         String    // SubmissionType
+  deadline         DateTime?
+  eventDate        DateTime?
+  endDate          DateTime?
+  location         String?
+  city             String?
+  country          String?
+  latitude         Float?
+  longitude        Float?
+  organizer        String?
+  description      String?
+  requirements     String?
+  fee              String?
+  prize            String?
+  contact          String?
+  email            String?
+  phone            String?
+  website          String?
+  originalUrl      String?
+  tags             String? // JSON string
+  source           String    // MessageSource
+  confidence       Float?
+  confidenceLevel  String?   // ConfidenceLevel
+  status           String    // ResourceStatus
+  language         String?
+  contentHash      String
+  similarityHash   String?
+  version          Int       @default(1)
+  parentId         String?
+  reviewedBy       String?
+  reviewedAt       DateTime?
+  reviewNotes      String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@unique([contentHash])
+  @@map("base_resources")
+}
+
+// 解析任务表
+model ParseTask {
+  id             String    @id @default(cuid())
+  messageId      String
+  taskType       String    // TaskType
+  priority       Int       @default(0)
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(3)
+  status         String    // MessageStatus
+  scheduledAt    DateTime
+  startedAt      DateTime?
+  completedAt    DateTime?
+  processingTime Int?
+  errorMessage   String?
+  errorCode      String?
+  result         Json?
+  metadata       Json?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@map("parse_tasks")
+}
+
+// 解析规则表
+model ParseRule {
+  id           String   @id @default(cuid())
+  name         String
+  description  String?
+  category     String   // SubmissionType
+  keywords     String? // JSON string
+  patterns     Json?
+  confidence   Float
+  isActive     Boolean  @default(true)
+  priority     Int      @default(0)
+  language     String
+  ruleType     String
+  config       Json?
+  successCount Int      @default(0)
+  totalCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("parse_rules")
+}
+
+// 质量检查表
+model QualityCheck {
+  id          String    @id @default(cuid())
+  resourceId  String
+  checkType   String
+  result      String    // 'PASS' | 'FAIL' | 'WARNING'
+  score       Float?
+  details     Json?
+  suggestions String?
+  automated   Boolean   @default(true)
+  reviewedBy  String?
+  reviewedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@map("quality_checks")
 }

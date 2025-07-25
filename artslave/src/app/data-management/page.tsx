@@ -21,7 +21,9 @@ import {
   Trash,
   FileDown,
   Star,
-  Archive
+  Archive,
+  Bot,
+  Zap
 } from 'lucide-react'
 import ThemeSelector from '@/components/ThemeSelector'
 import SubmissionForm from '@/components/SubmissionForm'
@@ -316,6 +318,28 @@ export default function DataManagementPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* InfoReceiver 测试按钮 */}
+        <div className={`${themeClasses.cardBackground} rounded-3xl border-2 ${themeClasses.border} p-6 mb-6`}>
+          <div className="text-center">
+            <div className="mb-4">
+              <div className="w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-4">
+                <Bot className="w-8 h-8 text-white" />
+              </div>
+              <h3 className={`text-xl font-bold ${themeClasses.textPrimary} mb-2`}>InfoReceiver 智能信息处理系统</h3>
+              <p className={`${themeClasses.textSecondary} mb-6`}>
+                测试 AI 驱动的信息接收、解析和处理功能
+              </p>
+            </div>
+            <Button
+              onClick={() => window.open('/test-info-receiver', '_blank')}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white px-8 py-4 rounded-2xl text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+            >
+              <Zap className="w-6 h-6 mr-3" />
+              启动 InfoReceiver 测试
+            </Button>
+          </div>
+        </div>
+
         {/* Controls */}
         <div className={`${themeClasses.cardBackground} rounded-3xl border-2 ${themeClasses.border} p-6 mb-6`}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
