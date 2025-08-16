@@ -17,16 +17,110 @@ import crypto from 'crypto'
 
 const prisma = new PrismaClient()
 
+function parseJsonArray(value: string | null): string[] {
+  if (!value) return []
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function toRawMessage(record: any): RawMessage {
+  return {
+    id: record.id,
+    source: record.source as MessageSource,
+    content: record.content,
+    links: parseJsonArray(record.links ?? null),
+    images: parseJsonArray(record.images ?? null),
+    attachments: parseJsonArray(record.attachments ?? null),
+    metadata: record.metadata ?? {},
+    status: record.status as MessageStatus,
+    processed: Boolean(record.processed),
+    resourceId: record.resourceId ?? undefined,
+    errorMessage: record.errorMessage ?? undefined,
+    retryCount: record.retryCount ?? 0,
+    priority: record.priority ?? 0,
+    scheduledAt: record.scheduledAt ?? undefined,
+    processedAt: record.processedAt ?? undefined,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt
+  }
+}
+
+function toBaseResource(record: any): BaseResource {
+  return {
+    id: record.id,
+    title: record.title,
+    category: record.category as SubmissionType,
+    deadline: record.deadline ?? undefined,
+    eventDate: record.eventDate ?? undefined,
+    endDate: record.endDate ?? undefined,
+    location: record.location ?? undefined,
+    city: record.city ?? undefined,
+    country: record.country ?? undefined,
+    latitude: record.latitude ?? undefined,
+    longitude: record.longitude ?? undefined,
+    organizer: record.organizer ?? undefined,
+    description: record.description ?? undefined,
+    requirements: record.requirements ?? undefined,
+    fee: record.fee ?? undefined,
+    prize: record.prize ?? undefined,
+    contact: record.contact ?? undefined,
+    email: record.email ?? undefined,
+    phone: record.phone ?? undefined,
+    website: record.website ?? undefined,
+    originalUrl: record.originalUrl ?? undefined,
+    tags: parseJsonArray(record.tags ?? null),
+    source: record.source as MessageSource,
+    confidence: record.confidence ?? undefined,
+    confidenceLevel: record.confidenceLevel ?? undefined,
+    status: record.status as ResourceStatus,
+    language: record.language ?? undefined,
+    contentHash: record.contentHash,
+    similarityHash: record.similarityHash ?? undefined,
+    version: record.version,
+    parentId: record.parentId ?? undefined,
+    reviewedBy: record.reviewedBy ?? undefined,
+    reviewedAt: record.reviewedAt ?? undefined,
+    reviewNotes: record.reviewNotes ?? undefined,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt
+  }
+}
+
+function toParseRule(record: any): ParseRule {
+  return {
+    id: record.id,
+    name: record.name,
+    description: record.description ?? undefined,
+    category: record.category as SubmissionType,
+    keywords: parseJsonArray(record.keywords ?? null),
+    patterns: record.patterns ?? undefined,
+    confidence: record.confidence,
+    isActive: record.isActive,
+    priority: record.priority,
+    language: record.language,
+    ruleType: record.ruleType,
+    config: record.config ?? undefined,
+    successCount: record.successCount,
+    totalCount: record.totalCount,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt
+  }
+}
+
 export class InfoReceiverDatabase {
   // 原始消息操作
   async createRawMessage(data: Omit<RawMessage, 'id' | 'createdAt' | 'updatedAt'>): Promise<RawMessage> {
-    return await prisma.rawMessage.create({
+    const created = await prisma.rawMessage.create({
       data: {
         source: data.source,
         content: data.content,
-        links: data.links,
-        images: data.images,
-        attachments: data.attachments,
+        links: JSON.stringify(data.links || []),
+        images: JSON.stringify(data.images || []),
+        attachments: JSON.stringify(data.attachments || []),
         metadata: data.metadata,
         status: data.status,
         processed: data.processed,
@@ -37,76 +131,99 @@ export class InfoReceiverDatabase {
         scheduledAt: data.scheduledAt,
         processedAt: data.processedAt
       }
-    }) as RawMessage
+    })
+    return toRawMessage(created)
   }
 
   async getRawMessage(id: string): Promise<RawMessage | null> {
-    return await prisma.rawMessage.findUnique({
+    const record = await prisma.rawMessage.findUnique({
       where: { id }
-    }) as RawMessage | null
+    })
+    return record ? toRawMessage(record) : null
   }
 
   async updateRawMessage(id: string, data: Partial<RawMessage>): Promise<RawMessage> {
-    return await prisma.rawMessage.update({
+    const updated = await prisma.rawMessage.update({
       where: { id },
-      data
-    }) as RawMessage
+      data: {
+        ...data,
+        // 将数组字段转换为字符串存储（如果传入）
+        ...(data.links ? { links: JSON.stringify(data.links) } : {}),
+        ...(data.images ? { images: JSON.stringify(data.images) } : {}),
+        ...(data.attachments ? { attachments: JSON.stringify(data.attachments) } : {})
+      } as any
+    })
+    return toRawMessage(updated)
   }
 
   async getRawMessagesByStatus(status: MessageStatus, limit = 50): Promise<RawMessage[]> {
-    return await prisma.rawMessage.findMany({
+    const records = await prisma.rawMessage.findMany({
       where: { status },
       orderBy: { createdAt: 'asc' },
       take: limit
-    }) as RawMessage[]
+    })
+    return records.map(toRawMessage)
   }
 
   // 基础资源操作
   async createBaseResource(data: Omit<BaseResource, 'id' | 'createdAt' | 'updatedAt'>): Promise<BaseResource> {
-    return await prisma.baseResource.create({
-      data
-    }) as BaseResource
+    const created = await prisma.baseResource.create({
+      data: {
+        ...data,
+        tags: JSON.stringify(data.tags || [])
+      } as any
+    })
+    return toBaseResource(created)
   }
 
   async getBaseResource(id: string): Promise<BaseResource | null> {
-    return await prisma.baseResource.findUnique({
+    const record = await prisma.baseResource.findUnique({
       where: { id }
-    }) as BaseResource | null
+    })
+    return record ? toBaseResource(record) : null
   }
 
   async findResourceByHash(contentHash: string): Promise<BaseResource | null> {
-    return await prisma.baseResource.findUnique({
+    const record = await prisma.baseResource.findUnique({
       where: { contentHash }
-    }) as BaseResource | null
+    })
+    return record ? toBaseResource(record) : null
   }
 
   async findResourceByUrl(url: string): Promise<BaseResource | null> {
-    return await prisma.baseResource.findFirst({
+    const record = await prisma.baseResource.findFirst({
       where: { originalUrl: url }
-    }) as BaseResource | null
+    })
+    return record ? toBaseResource(record) : null
   }
 
   async getResourcesByCategory(category: SubmissionType, limit = 50): Promise<BaseResource[]> {
-    return await prisma.baseResource.findMany({
+    const records = await prisma.baseResource.findMany({
       where: { category },
       orderBy: { createdAt: 'desc' },
       take: limit
-    }) as BaseResource[]
+    })
+    return records.map(toBaseResource)
   }
 
   async updateBaseResource(id: string, data: Partial<BaseResource>): Promise<BaseResource> {
-    return await prisma.baseResource.update({
+    const updated = await prisma.baseResource.update({
       where: { id },
-      data
-    }) as BaseResource
+      data: {
+        ...data,
+        ...(data.tags ? { tags: JSON.stringify(data.tags) } : {})
+      } as any
+    })
+    return toBaseResource(updated)
   }
 
   async updateResourceStatus(resourceId: string, status: string): Promise<BaseResource | null> {
     try {
-      return await prisma.baseResource.update({
+      const updated = await prisma.baseResource.update({
         where: { id: resourceId },
         data: { status: status as ResourceStatus }
-      }) as BaseResource
+      })
+      return toBaseResource(updated)
     } catch (error) {
       console.error('Failed to update resource status:', error)
       return null
@@ -114,11 +231,12 @@ export class InfoReceiverDatabase {
   }
 
   async getResourcesByStatus(status: ResourceStatus, limit = 50): Promise<BaseResource[]> {
-    return await prisma.baseResource.findMany({
+    const records = await prisma.baseResource.findMany({
       where: { status },
       orderBy: { createdAt: 'desc' },
       take: limit
-    }) as BaseResource[]
+    })
+    return records.map(toBaseResource)
   }
 
   async getResources(status?: string, category?: string, limit = 50): Promise<BaseResource[]> {
@@ -126,11 +244,12 @@ export class InfoReceiverDatabase {
     if (status) where.status = status
     if (category) where.category = category
 
-    return await prisma.baseResource.findMany({
+    const records = await prisma.baseResource.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: limit
-    }) as BaseResource[]
+    })
+    return records.map(toBaseResource)
   }
 
   async searchResources(query: string, category?: SubmissionType): Promise<BaseResource[]> {
@@ -147,11 +266,12 @@ export class InfoReceiverDatabase {
       where.category = category
     }
 
-    return await prisma.baseResource.findMany({
+    const records = await prisma.baseResource.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       take: 100
-    }) as BaseResource[]
+    })
+    return records.map(toBaseResource)
   }
 
   // 解析任务操作
@@ -202,16 +322,21 @@ export class InfoReceiverDatabase {
       where.category = category
     }
 
-    return await prisma.parseRule.findMany({
+    const records = await prisma.parseRule.findMany({
       where,
       orderBy: { priority: 'desc' }
-    }) as ParseRule[]
+    })
+    return records.map(toParseRule)
   }
 
   async createParseRule(data: Omit<ParseRule, 'id' | 'createdAt' | 'updatedAt'>): Promise<ParseRule> {
-    return await prisma.parseRule.create({
-      data
-    }) as ParseRule
+    const created = await prisma.parseRule.create({
+      data: {
+        ...data,
+        keywords: JSON.stringify(data.keywords || [])
+      } as any
+    })
+    return toParseRule(created)
   }
 
   // 质量检查操作

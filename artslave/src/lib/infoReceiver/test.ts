@@ -2,6 +2,7 @@
 
 import { InfoReceiverService, createInfoReceiverService } from './infoReceiverService'
 import { MessageSource, SubmitMessageRequest } from './types'
+import { testInfoReceiverConfig } from './config'
 
 export interface TestCase {
   id: string
@@ -29,61 +30,8 @@ export class InfoReceiverTester {
 
   constructor() {
     // 创建测试用的服务实例
-    this.service = createInfoReceiverService({
-      llm: {
-        provider: 'openai',
-        model: 'gpt-4o-mini',
-        apiKey: process.env.OPENAI_API_KEY || 'test-key',
-        baseUrl: process.env.OPENAI_BASE_URL,
-        maxTokens: 2000,
-        temperature: 0.1,
-        timeout: 30000,
-        fallbackModels: ['gpt-3.5-turbo']
-      },
-      crawler: {
-        timeout: 15000,
-        maxRetries: 3,
-        delay: 1000,
-        userAgent: 'ArtSlave InfoReceiver Test Bot 1.0',
-        enableJavaScript: false
-      },
-      deduplication: {
-        threshold: 0.8,
-        enableSimilarityCheck: true,
-        hashAlgorithm: 'sha256'
-      },
-      processing: {
-        batchSize: 5,
-        maxConcurrency: 2,
-        confidenceThreshold: 0.6,
-        manualReviewThreshold: 0.4,
-        enableRuleEngine: true,
-        enableGeocoding: false,
-        enableOCR: false
-      },
-      queue: {
-        maxRetries: 3,
-        retryDelay: 1000,
-        priorityLevels: 5
-      },
-      monitoring: {
-        enableMetrics: false,
-        metricsInterval: 60000,
-        enableNotifications: false,
-        alertThresholds: {
-          errorRate: 0.1,
-          queueLength: 100,
-          processingLatency: 30000,
-          diskUsage: 0.8,
-          memoryUsage: 0.8
-        }
-      },
-      storage: {
-        provider: 'prisma',
-        enableBackup: false,
-        backupInterval: 86400000
-      }
-    })
+    this.service = createInfoReceiverService(testInfoReceiverConfig)
+
   }
 
   /**

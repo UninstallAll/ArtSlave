@@ -13,7 +13,10 @@
     "test:coverage": "jest --coverage",
     "test:integration": "node tests/integration-test.js",
     "test:all": "npm run test && npm run test:integration",
-    "test:ci": "npm run test:coverage && npm run test:integration"
+    "test:ci": "npm run test:coverage && npm run test:integration",
+    "n8n:start": "node scripts/start-n8n.js",
+    "n8n:dev": "N8N_LOG_LEVEL=debug node scripts/start-n8n.js",
+    "workflow:setup": "node scripts/setup-workflow.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.1.1",
@@ -28,7 +31,6 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "lucide-react": "^0.525.0",
-    "n8n": "^1.101.2",
     "next": "15.3.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

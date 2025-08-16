@@ -1,0 +1,317 @@
+{
+  "name": "信息投递自动化工作流",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "start-node",
+      "name": "开始",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "url": "http://localhost:3000/api/workflow/data/submissions?active=true&limit=10",
+        "options": {
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        }
+      },
+      "id": "get-submissions",
+      "name": "获取活跃投稿信息",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "success-check",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equal"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-response",
+      "name": "检查响应",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "data",
+        "options": {}
+      },
+      "id": "split-submissions",
+      "name": "分割投稿信息",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "url": "http://localhost:3000/api/workflow/data/users?limit=50",
+        "options": {
+          "headers": {
+            "Content-Type": "application/json"
+          }
+        }
+      },
+      "id": "get-users",
+      "name": "获取用户列表",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI 匹配逻辑\nconst submission = $input.first().json;\nconst users = $input.last().json.data || [];\n\nconst matches = [];\n\nfor (const user of users) {\n  let score = 0;\n  const reasons = [];\n  \n  // 基于用户类型匹配\n  if (user.userType === 'ARTIST' && ['EXHIBITION', 'COMPETITION'].includes(submission.type)) {\n    score += 0.3;\n    reasons.push('用户类型匹配');\n  }\n  \n  if (user.userType === 'RESEARCHER' && ['CONFERENCE', 'GRANT'].includes(submission.type)) {\n    score += 0.3;\n    reasons.push('研究者类型匹配');\n  }\n  \n  // 基于地理位置匹配\n  if (user.location && submission.location && \n      user.location.toLowerCase().includes(submission.location.toLowerCase())) {\n    score += 0.2;\n    reasons.push('地理位置匹配');\n  }\n  \n  // 基于艺术领域匹配\n  if (user.artFields && submission.tags) {\n    try {\n      const userFields = JSON.parse(user.artFields || '[]');\n      const submissionTags = JSON.parse(submission.tags || '[]');\n      \n      const commonFields = userFields.filter(field => \n        submissionTags.some(tag => \n          tag.toLowerCase().includes(field.toLowerCase()) ||\n          field.toLowerCase().includes(tag.toLowerCase())\n        )\n      );\n      \n      if (commonFields.length > 0) {\n        score += 0.3;\n        reasons.push(`艺术领域匹配: ${commonFields.join(', ')}`);\n      }\n    } catch (e) {\n      // 忽略JSON解析错误\n    }\n  }\n  \n  // 基于经验水平匹配\n  if (user.experienceLevel) {\n    if (submission.requirements && \n        submission.requirements.toLowerCase().includes(user.experienceLevel.toLowerCase())) {\n      score += 0.2;\n      reasons.push('经验水平匹配');\n    }\n  }\n  \n  // 如果匹配分数大于阈值，添加到匹配列表\n  if (score >= 0.3) {\n    matches.push({\n      userId: user.id,\n      userEmail: user.email,\n      userName: user.name,\n      submissionId: submission.id,\n      submissionTitle: submission.title,\n      matchScore: Math.min(score, 1.0),\n      reasons: reasons,\n      isRecommended: score >= 0.6\n    });\n  }\n}\n\n// 按匹配分数排序\nmatches.sort((a, b) => b.matchScore - a.matchScore);\n\nreturn matches.map(match => ({ json: match }));"
+      },
+      "id": "ai-matching",
+      "name": "AI 匹配算法",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "has-matches",
+              "leftValue": "={{ $json.matchScore }}",
+              "rightValue": 0.5,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "filter-high-matches",
+      "name": "筛选高匹配度",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "http://localhost:3000/api/ai-matches",
+        "options": {
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "userId": "={{ $json.userId }}",
+            "submissionInfoId": "={{ $json.submissionId }}",
+            "matchScore": "={{ $json.matchScore }}",
+            "reasons": "={{ $json.reasons }}",
+            "isRecommended": "={{ $json.isRecommended }}"
+          }
+        }
+      },
+      "id": "save-match",
+      "name": "保存匹配结果",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 100]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "url": "http://localhost:3000/api/notifications",
+        "options": {
+          "headers": {
+            "Content-Type": "application/json"
+          },
+          "body": {
+            "userId": "={{ $json.userId }}",
+            "type": "RECOMMENDATION",
+            "title": "新的投稿推荐",
+            "message": "我们为您找到了匹配度为 {{ Math.round($json.matchScore * 100) }}% 的投稿机会：{{ $json.submissionTitle }}",
+            "data": {
+              "submissionId": "={{ $json.submissionId }}",
+              "matchScore": "={{ $json.matchScore }}",
+              "reasons": "={{ $json.reasons }}"
+            }
+          }
+        }
+      },
+      "id": "send-notification",
+      "name": "发送推荐通知",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [1780, 300]
+    },
+    {
+      "parameters": {
+        "message": "工作流执行完成。处理了 {{ $('split-submissions').itemMatching(0).$json.data.length }} 条投稿信息，生成了 {{ $runIndex }} 个匹配结果。"
+      },
+      "id": "log-completion",
+      "name": "记录完成日志",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [2000, 200]
+    },
+    {
+      "parameters": {
+        "message": "API 响应失败或数据为空"
+      },
+      "id": "log-error",
+      "name": "记录错误",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [900, 400]
+    }
+  ],
+  "connections": {
+    "开始": {
+      "main": [
+        [
+          {
+            "node": "获取活跃投稿信息",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "获取活跃投稿信息": {
+      "main": [
+        [
+          {
+            "node": "检查响应",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "检查响应": {
+      "main": [
+        [
+          {
+            "node": "分割投稿信息",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "记录错误",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "分割投稿信息": {
+      "main": [
+        [
+          {
+            "node": "获取用户列表",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "获取用户列表": {
+      "main": [
+        [
+          {
+            "node": "AI 匹配算法",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI 匹配算法": {
+      "main": [
+        [
+          {
+            "node": "筛选高匹配度",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "筛选高匹配度": {
+      "main": [
+        [
+          {
+            "node": "保存匹配结果",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "发送推荐通知",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "保存匹配结果": {
+      "main": [
+        [
+          {
+            "node": "记录完成日志",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "发送推荐通知": {
+      "main": [
+        [
+          {
+            "node": "记录完成日志",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "submission-automation",
+  "tags": ["artslave", "automation", "ai-matching"]
+}

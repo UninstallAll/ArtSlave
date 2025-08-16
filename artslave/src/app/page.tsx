@@ -17,7 +17,9 @@ import {
   Settings,
   AlertTriangle,
   Sparkles,
-  Users
+  Users,
+  Workflow,
+  Zap
 } from 'lucide-react'
 
 export default function Home() {
@@ -146,7 +148,26 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* 4. AI匹配 */}
+            {/* 4. 信息投递工作流 */}
+            <div className={`group ${themeClasses.cardBackground} rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 ${themeClasses.border}`}>
+              <div className="mb-4">
+                <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center mb-4">
+                  <Workflow className="w-7 h-7 text-white" />
+                </div>
+                <h3 className={`text-xl font-bold ${themeClasses.textPrimary} mb-2`}>投递工作流</h3>
+                <p className={`${themeClasses.textSecondary} text-sm`}>
+                  自动化投稿流程和工作流管理
+                </p>
+              </div>
+              <Button
+                className={`w-full ${themeClasses.button} rounded-2xl py-3 transition-all duration-200`}
+                onClick={() => window.location.href = '/workflow'}
+              >
+                工作流管理
+              </Button>
+            </div>
+
+            {/* 5. AI匹配 */}
             <div className={`group ${themeClasses.cardBackground} rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 ${themeClasses.border}`}>
               <div className="mb-4">
                 <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center mb-4">
@@ -162,7 +183,7 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* 5. 我的资料 (个人信息管理) */}
+            {/* 6. 我的资料 (个人信息管理) */}
             <div className={`group ${themeClasses.cardBackground} rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 ${themeClasses.border}`}>
               <div className="mb-4">
                 <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center mb-4">
@@ -181,7 +202,7 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* 6. 投稿记录 */}
+            {/* 7. 投稿记录 */}
             <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
               <div className="mb-4">
                 <div className="w-14 h-14 bg-orange-600 rounded-2xl flex items-center justify-center mb-4">
@@ -197,7 +218,7 @@ export default function Home() {
               </Button>
             </div>
 
-            {/* 7. 系统设置 */}
+            {/* 8. 系统设置 */}
             <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
               <div className="mb-4">
                 <div className="w-14 h-14 bg-gray-700 rounded-2xl flex items-center justify-center mb-4">
@@ -316,7 +337,26 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* 3. AI匹配 */}
+          {/* 3. 信息投递工作流 */}
+          <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
+            <div className="mb-4">
+              <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center mb-4">
+                <Workflow className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">投递工作流</h3>
+              <p className="text-gray-600 text-sm">
+                自动化投稿流程和工作流管理
+              </p>
+            </div>
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-3"
+              onClick={() => window.location.href = '/workflow'}
+            >
+              工作流管理
+            </Button>
+          </div>
+
+          {/* 4. AI匹配 */}
           <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
             <div className="mb-4">
               <div className="w-14 h-14 bg-green-600 rounded-2xl flex items-center justify-center mb-4">
@@ -332,7 +372,7 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* 4. 我的资料 (个人信息管理) */}
+          {/* 5. 我的资料 (个人信息管理) */}
           <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
             <div className="mb-4">
               <div className="w-14 h-14 bg-purple-600 rounded-2xl flex items-center justify-center mb-4">
@@ -351,7 +391,7 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* 5. 投稿记录 */}
+          {/* 6. 投稿记录 */}
           <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
             <div className="mb-4">
               <div className="w-14 h-14 bg-orange-600 rounded-2xl flex items-center justify-center mb-4">
@@ -367,7 +407,7 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* 6. 系统设置 */}
+          {/* 7. 系统设置 */}
           <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
             <div className="mb-4">
               <div className="w-14 h-14 bg-gray-700 rounded-2xl flex items-center justify-center mb-4">

@@ -108,14 +108,15 @@ async function handleGetWorkflows(): Promise<NextResponse> {
     }
 
     // 尝试从 n8n API 获取工作流列表
-    const response = await fetch(`${n8nStatus.url}/api/v1/workflows`, {
+    const response = await fetch(`${n8nStatus.url}/rest/workflows`, {
       headers: {
         'Accept': 'application/json'
       }
     })
 
     if (response.ok) {
-      const workflows = await response.json()
+      const data = await response.json()
+      const workflows = Array.isArray(data) ? data : (data.data || [])
       return NextResponse.json({ workflows })
     } else {
       return NextResponse.json({
