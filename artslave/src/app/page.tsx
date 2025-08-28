@@ -19,7 +19,8 @@ import {
   Sparkles,
   Users,
   Workflow,
-  Zap
+  Zap,
+  Network
 } from 'lucide-react'
 
 export default function Home() {
@@ -180,6 +181,25 @@ export default function Home() {
               </div>
               <Button className={`w-full ${themeClasses.button} rounded-2xl py-3 transition-all duration-200 opacity-50 cursor-not-allowed`} disabled>
                 查看推荐 (开发中)
+              </Button>
+            </div>
+
+            {/* 5.5. 深度搜索与知识图谱 */}
+            <div className={`group ${themeClasses.cardBackground} rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 ${themeClasses.border}`}>
+              <div className="mb-4">
+                <div className="w-14 h-14 bg-red-600 rounded-2xl flex items-center justify-center mb-4">
+                  <Network className="w-7 h-7 text-white" />
+                </div>
+                <h3 className={`text-xl font-bold ${themeClasses.textPrimary} mb-2`}>深度搜索</h3>
+                <p className={`${themeClasses.textSecondary} text-sm`}>
+                  基于核心对象构建艺术领域知识网络
+                </p>
+              </div>
+              <Button
+                className={`w-full ${themeClasses.button} rounded-2xl py-3 transition-all duration-200`}
+                onClick={() => window.location.href = '/deep-search'}
+              >
+                知识图谱搜索
               </Button>
             </div>
 
@@ -407,7 +427,26 @@ export default function Home() {
             </Button>
           </div>
 
-          {/* 7. 系统设置 */}
+          {/* 7. 知识图谱 */}
+          <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
+            <div className="mb-4">
+              <div className="w-14 h-14 bg-emerald-600 rounded-2xl flex items-center justify-center mb-4">
+                <Network className="w-7 h-7 text-white" />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">知识图谱</h3>
+              <p className="text-gray-600 text-sm">
+                探索艺术世界的关联网络
+              </p>
+            </div>
+            <Button
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl py-3"
+              onClick={() => window.location.href = '/graph'}
+            >
+              知识图谱
+            </Button>
+          </div>
+
+          {/* 8. 系统设置 */}
           <div className="group bg-white rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border-2 border-black">
             <div className="mb-4">
               <div className="w-14 h-14 bg-gray-700 rounded-2xl flex items-center justify-center mb-4">

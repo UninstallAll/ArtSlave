@@ -2,15 +2,9 @@ const fs = require('fs')
 const path = require('path')
 const Database = require('better-sqlite3')
 
-// 确保数据目录存在
+// 数据目录路径
 const dataDir = path.join(__dirname, '../data')
-if (!fs.existsSync(dataDir)) {
-  fs.mkdirSync(dataDir, { recursive: true })
-}
-
-// 初始化 SQLite 数据库
 const dbPath = path.join(dataDir, 'artslave.db')
-const db = new Database(dbPath)
 
 // 示例数据
 const sampleSubmissions = [
@@ -191,7 +185,7 @@ const sampleSubmissions = [
 ]
 
 // 初始化数据库表
-function initializeTables() {
+function initializeTables(db) {
   console.log('🔧 初始化数据库表...')
 
   // 创建投稿信息表
@@ -269,7 +263,7 @@ function initializeTables() {
 }
 
 // 插入示例数据
-function insertSampleData() {
+function insertSampleData(db) {
   console.log('📊 插入示例数据...')
 
   // 检查是否已有数据
@@ -310,7 +304,7 @@ function insertSampleData() {
 }
 
 // 插入示例数据源
-function insertSampleDataSources() {
+function insertSampleDataSources(db) {
   console.log('🔗 插入示例数据源...')
 
   const dataSources = [
@@ -384,16 +378,25 @@ function insertSampleDataSources() {
 
 // 主函数
 function main() {
+  let db = null
   try {
     console.log('🚀 开始初始化 ArtSlave SQLite 数据库')
     console.log('=' * 50)
 
+    // 确保数据目录存在
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true })
+    }
+
+    // 创建数据库连接
+    db = new Database(dbPath)
+
     // 初始化表
-    initializeTables()
+    initializeTables(db)
 
     // 插入示例数据
-    const submissionCount = insertSampleData()
-    const sourceCount = insertSampleDataSources()
+    const submissionCount = insertSampleData(db)
+    const sourceCount = insertSampleDataSources(db)
 
     console.log('\n' + '=' * 50)
     console.log('🎉 数据库初始化完成！')
@@ -406,9 +409,13 @@ function main() {
     console.error('❌ 初始化失败:', error)
     process.exit(1)
   } finally {
-    db.close()
+    if (db) {
+      db.close()
+    }
   }
 }
 
-// 运行初始化
-main()
+// 只有直接运行此脚本时才执行初始化
+if (require.main === module) {
+  main()
+}

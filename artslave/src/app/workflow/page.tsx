@@ -296,9 +296,9 @@ export default function WorkflowPage() {
                   启动后的步骤
                 </h3>
                 <ol className="text-yellow-700 text-sm space-y-1 list-decimal list-inside">
-                  <li>等待看到 "Editor is now accessible" 消息</li>
+                  <li>等待看到 &quot;Editor is now accessible&quot; 消息</li>
                   <li>访问 <a href="http://localhost:5678" target="_blank" className="text-blue-600 underline">http://localhost:5678</a> 设置管理员账户</li>
-                  <li>返回此页面，点击"刷新状态"按钮</li>
+                  <li>返回此页面，点击&quot;刷新状态&quot;按钮</li>
                   <li>导入预设工作流文件（位于 artslave/n8n/workflows/ 目录）</li>
                 </ol>
               </div>
